@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VOIDIS</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body, html {
+            height: 100%;
+            width: 100%;
+            background-color: #000000;
+            overflow: hidden; /* Prevent body scroll, use container instead */
+            font-family: 'Courier New', Courier, monospace;
+            color: white;
+            cursor: none; /* Hide default cursor */
+        }
+
+        /* --- CUSTOM CURSOR --- */
+        .custom-cursor {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 20px;
+            height: 20px;
+            border: 2px solid cyan;
+            background: rgba(0, 255, 255, 0.1);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 10000; /* Max Z-Index */
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 10px cyan;
+            transition: width 0.2s, height 0.2s, background 0.2s, border-color 0.2s;
+            mix-blend-mode: screen;
+            will-change: transform, left, top;
+        }
+
+        .custom-cursor.hovered {
+            width: 50px;
+            height: 50px;
+            background: rgba(0, 255, 255, 0.2);
+            border-color: white;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
+        }
+
+        /* --- SCROLL CONTAINER --- */
+        .scroll-container {
+            height: 100vh;
+            width: 100vw;
+            overflow-y: scroll;
+            overflow-x: hidden;
+            scroll-behavior: auto; 
+            position: relative;
+            z-index: 10;
+            cursor: none;
+            
+            /* Hide Scrollbar */
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .scroll-container::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* --- BACKGROUND EFFECTS --- */
+
+        .background-layer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .noise {
+            z-index: 55;
+            opacity: 0.05;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+        }
+
+        .crt-flicker {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.02);
+            z-index: 60;
+            pointer-events: none;
+            animation: flicker 0.15s infinite;
+        }
+
+        .nebula {
+            background: 
+                radial-gradient(circle at 20% 30%, rgba(20, 10, 40, 0.4) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(10, 30, 50, 0.3) 0%, transparent 50%);
+            filter: blur(30px);
+            animation: nebula-pulse 10s ease-in-out infinite alternate, hue-shift 20s infinite linear;
+        }
+
+        .scanlines {
+            background: linear-gradient(
+                to bottom,
+                rgba(255,255,255,0),
+                rgba(255,255,255,0) 50%,
+                rgba(0,0,0,0.2) 50%,
+                rgba(0,0,0,0.2)
+            );
+            background-size: 100% 4px;
+            z-index: 50;
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        .vignette {
+            background: radial-gradient(circle, transparent 50%, rgba(0,0,0,0.8) 100%);
+            z-index: 40;
+            pointer-events: none;
+        }
+
+        .lens-flare {
+            position: fixed;
+            top: 0;
+            left: -50%;
+            width: 200%;
+            height: 100%;
+            background: linear-gradient(
+                45deg,
+                transparent 45%,
+                rgba(255, 255, 255, 0.03) 50%,
+                transparent 55%
+            );
+            z-index: 20;
+            pointer-events: none;
+            animation: light-pass 15s infinite linear;
+        }
+
+        .lens-flare::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 100vw;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(100, 200, 255, 0.3), transparent);
+            transform: translate(-50%, -50%) rotate(-45deg);
+            filter: blur(4px);
+        }
+
+        #stars {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        /* --- SECTIONS LAYOUT --- */
+
+        .section {
+            min-height: 100vh;
+            width: 100%;
+            position: relative;
+            z-index: 30;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            perspective: 1000px;
+            overflow: hidden;
+            padding: 50px 0; 
+        }
+
+        /* --- SECTION 1: TITLE --- */
+
+        .title-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transform-style: preserve-3d;
+        }
+
+        .main-text {
+            color: #ffffff;
+            font-size: 12vw;
+            font-weight: 900;
+            letter-spacing: 1.5rem;
+            text-transform: uppercase;
+            position: relative;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+            transition: text-shadow 0.3s;
+        }
+
+        .reflection {
+            color: #ffffff;
+            font-size: 12vw;
+            font-weight: 900;
+            letter-spacing: 1.5rem;
+            text-transform: uppercase;
+            transform: scaleY(-1) translateY(-10px);
+            opacity: 0.2;
+            mask-image: linear-gradient(to top, rgba(0,0,0,0), rgba(0,0,0,1));
+            -webkit-mask-image: linear-gradient(to top, transparent 40%, white 100%);
+            filter: blur(4px);
+            pointer-events: none;
+            margin-top: -2vw;
+        }
+
+        .btn-container {
+            margin-top: 4rem;
+            opacity: 0;
+            animation: fade-in 2s ease-out forwards 1s;
+        }
+
+        .itch-btn {
+            text-decoration: none;
+            color: #ffffff;
+            font-size: 1.2rem;
+            padding: 1rem 3rem;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            transition: all 0.3s ease;
+            letter-spacing: 0.2rem;
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.1);
+            cursor: none; 
+        }
+
+        .itch-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            transition: 0.5s;
+        }
+
+        .itch-btn:hover {
+            background: #ffffff;
+            color: #000000;
+            box-shadow: 0 0 40px rgba(255, 255, 255, 0.6), 0 0 10px rgba(0, 255, 255, 0.8);
+            border-color: #ffffff;
+        }
+
+        .itch-btn:hover::before {
+            left: 100%;
+        }
+
+        /* --- SECTION 2: SHOWCASE --- */
+
+        .showcase-content {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+            max-width: 1400px;
+            width: 90%;
+            gap: 5rem;
+            opacity: 0; 
+            transform: translateY(50px);
+            transition: opacity 1.2s cubic-bezier(0.19, 1, 0.22, 1), transform 1.2s cubic-bezier(0.19, 1, 0.22, 1);
+        }
+
+        .showcase-content.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .image-wrapper {
+            flex: 1.2;
+            position: relative;
+            animation: float-slow 6s ease-in-out infinite;
+            cursor: none;
+        }
+
+        .projector-img {
+            width: 100%;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 0 50px rgba(0, 255, 255, 0.05);
+            display: block;
+            background: #050505;
+            min-height: 350px;
+            object-fit: cover;
+            transition: box-shadow 0.5s;
+        }
+
+        .projector-img:hover {
+            box-shadow: 0 0 60px rgba(0, 255, 255, 0.2);
+        }
+
+        .corner-deco {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            border: 2px solid cyan;
+            transition: all 0.5s;
+            pointer-events: none;
+        }
+        
+        .tl { top: -15px; left: -15px; border-right: 0; border-bottom: 0; }
+        .tr { top: -15px; right: -15px; border-left: 0; border-bottom: 0; }
+        .bl { bottom: -15px; left: -15px; border-right: 0; border-top: 0; }
+        .br { bottom: -15px; right: -15px; border-left: 0; border-top: 0; }
+
+        .image-wrapper:hover .corner-deco {
+            width: 40px;
+            height: 40px;
+            box-shadow: 0 0 15px cyan;
+        }
+        
+        .image-wrapper:hover .tl { top: -10px; left: -10px; }
+        .image-wrapper:hover .tr { top: -10px; right: -10px; }
+        .image-wrapper:hover .bl { bottom: -10px; left: -10px; }
+        .image-wrapper:hover .br { bottom: -10px; right: -10px; }
+
+        .text-wrapper {
+            flex: 1;
+            text-align: left;
+        }
+
+        .showcase-title {
+            font-size: 2.5rem;
+            margin-bottom: 1.5rem;
+            color: white;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+            letter-spacing: 8px;
+            font-weight: 100;
+            border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+            padding-bottom: 1rem;
+            display: inline-block;
+        }
+
+        .showcase-desc {
+            font-size: 1.2rem;
+            line-height: 1.8;
+            color: #aaa;
+            letter-spacing: 2px;
+            background: linear-gradient(90deg, rgba(0,255,255,0.03), transparent);
+            padding: 20px;
+            border-left: 1px solid rgba(0, 255, 255, 0.5);
+        }
+
+        /* --- SECTION 3: ABOUT --- */
+
+        .about-content {
+            text-align: center;
+            max-width: 900px;
+            width: 90%;
+            opacity: 0;
+            filter: url('#lensDistort'); 
+            transform: scale(0.9);
+            transition: opacity 1s ease-in, transform 1s ease-out;
+        }
+
+        .about-content.visible {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .about-header {
+            font-size: 4rem;
+            letter-spacing: 1rem;
+            margin-bottom: 2rem;
+            color: transparent;
+            -webkit-text-stroke: 1px cyan;
+            text-shadow: 2px 2px 0px red, -2px -2px 0px blue; /* Chromatic aberration feel */
+            animation: text-float 4s ease-in-out infinite;
+            display: inline-block;
+        }
+
+        .about-desc {
+            font-size: 1.4rem;
+            color: #ddd;
+            margin-bottom: 3rem;
+            line-height: 1.6;
+            letter-spacing: 2px;
+        }
+
+        .inspiration-grid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 1.5rem;
+        }
+
+        .inspiration-tag {
+            padding: 0.8rem 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(0,0,0,0.6);
+            color: #aaa;
+            font-size: 1rem;
+            letter-spacing: 1px;
+            transition: 0.3s;
+            position: relative;
+            overflow: hidden;
+            cursor: none;
+        }
+
+        .inspiration-tag:hover {
+            border-color: cyan;
+            color: white;
+            box-shadow: 0 0 15px rgba(0,255,255,0.3);
+            transform: translateY(-5px);
+        }
+
+        .highlight {
+            color: cyan;
+            font-weight: bold;
+            text-shadow: 0 0 8px rgba(0, 255, 255, 0.6);
+        }
+
+        /* --- SECTION 4: RELEASE (IMPROVED REALISTIC EYE) --- */
+
+        .release-section {
+            filter: url('#heavyDistort'); 
+        }
+
+        .release-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3rem;
+            opacity: 0;
+            transition: opacity 2s ease-in;
+        }
+
+        .release-content.visible {
+            opacity: 1;
+        }
+
+        .creepy-text {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 1.5rem;
+            color: #ff3333;
+            text-shadow: 0 0 10px red;
+            letter-spacing: 5px;
+            text-align: center;
+            max-width: 600px;
+            animation: pulse-text 4s infinite alternate;
+        }
+
+        .eye-container {
+            width: 240px;
+            height: 240px;
+            position: relative;
+            filter: drop-shadow(0 0 30px rgba(200, 0, 0, 0.4));
+        }
+
+        .eyeball {
+            width: 100%;
+            height: 100%;
+            /* More realistic sclera shader with shadow depth */
+            background: radial-gradient(circle at 35% 35%, #fff 0%, #eee 20%, #ddd 40%, #bbb 60%, #400 100%);
+            border-radius: 50%;
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 0 40px #000; /* Deep shadow around edges */
+        }
+
+        /* Improved Veins */
+        .eyeball::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 180%;
+            height: 180%;
+            background: 
+                repeating-conic-gradient(rgba(255,0,0,0.1) 0deg 1deg, transparent 1deg 8deg),
+                repeating-conic-gradient(transparent 0deg 10deg, rgba(100,0,0,0.1) 10deg 10.5deg);
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            opacity: 0.7;
+            pointer-events: none;
+            mix-blend-mode: multiply;
+        }
+
+        /* Realistic Iris */
+        .iris {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 45%;
+            height: 45%;
+            /* Complex iris texture using conic gradients */
+            background: 
+                radial-gradient(circle, transparent 20%, #400 90%),
+                conic-gradient(from 0deg, #500 0deg, #900 20deg, #400 40deg, #800 60deg, #300 80deg, #500 100deg, #900 120deg, #400 140deg, #800 160deg, #300 180deg, #500 200deg, #900 220deg, #400 240deg, #800 260deg, #300 280deg, #500 300deg, #900 320deg, #400 340deg, #500 360deg),
+                radial-gradient(circle, #800 0%, #200 100%);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: inset 0 0 10px #000, 0 0 5px rgba(0,0,0,0.5);
+            will-change: transform;
+            overflow: hidden;
+            border: 1px solid rgba(0,0,0,0.3);
+        }
+        
+        /* Iris fibers detail */
+        .iris::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: repeating-conic-gradient(rgba(255,255,255,0.1) 0deg 1deg, transparent 1deg 5deg);
+            border-radius: 50%;
+            opacity: 0.3;
+        }
+
+        .pupil {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 35%;
+            height: 35%;
+            background: #000;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 10px rgba(0,0,0,0.8);
+            z-index: 2;
+        }
+
+        /* Wetness / Reflection */
+        .eye-glint {
+            position: absolute;
+            top: 20%;
+            left: 20%;
+            width: 20%;
+            height: 15%;
+            background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(255,255,255,0.4));
+            border-radius: 50%;
+            filter: blur(1px);
+            z-index: 5;
+            transform: rotate(-45deg);
+        }
+        
+        .eye-glint::after {
+            content: '';
+            position: absolute;
+            bottom: -150%;
+            right: -150%;
+            width: 50%;
+            height: 50%;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            filter: blur(2px);
+        }
+
+        /* --- SECTION 5: TERMINUS (UPDATED) --- */
+        
+        .terminus-section {
+            background: #050000;
+            filter: url('#liquidDistort'); /* Intense distortion */
+        }
+        
+        .terminus-content {
+            opacity: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2rem;
+            transition: opacity 3s ease-in;
+        }
+        
+        .terminus-content.visible {
+            opacity: 1;
+        }
+        
+        .terminus-title {
+            font-size: 6rem;
+            font-weight: 900;
+            color: #fff;
+            text-transform: uppercase;
+            letter-spacing: -5px;
+            mix-blend-mode: exclusion;
+            animation: violent-shake 0.2s infinite;
+            text-shadow: 5px 0 red, -5px 0 blue;
+        }
+        
+        .terminus-text {
+            font-size: 2rem;
+            color: #ff3333;
+            max-width: 600px;
+            text-align: center;
+            font-family: monospace;
+            text-shadow: 2px 2px 0px #000;
+            animation: flicker 0.1s infinite;
+            border-bottom: 2px solid red;
+            padding-bottom: 1rem;
+        }
+
+        /* --- SECTION 6: RAIN (NEW) --- */
+
+        .rain-section {
+            background: #080810;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .rain-content {
+            position: relative;
+            z-index: 5;
+            opacity: 0;
+            transition: opacity 2s ease-in;
+            text-align: center;
+        }
+        .rain-content.visible { opacity: 1; }
+
+        .rain-title {
+            font-size: 3rem;
+            color: #aaccff;
+            letter-spacing: 10px;
+            text-shadow: 0 0 20px rgba(100, 200, 255, 0.5);
+        }
+
+        .raindrop {
+            position: absolute;
+            top: -50px;
+            width: 2px;
+            height: 20px;
+            background: linear-gradient(to bottom, transparent, rgba(150, 255, 255, 0.8));
+            animation: rain-fall linear infinite;
+            z-index: 2;
+        }
+
+        /* --- SECTION 7: FOUND YOU --- */
+
+        .found-you-section {
+            background: #110000; /* Dark red background */
+            filter: url('#extremeDistort'); /* New extreme distortion */
+        }
+
+        .found-you-content {
+            opacity: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2rem;
+            transition: opacity 1s ease-in;
+        }
+
+        .found-you-content.visible {
+            opacity: 1;
+        }
+
+        .found-you-text {
+            font-size: 4rem;
+            font-weight: 900;
+            color: #ff0000;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            text-shadow: 5px 5px 0px #000, -5px -5px 0px #500;
+            animation: chaotic-glitch 0.3s infinite steps(2, end) alternate-reverse;
+            text-align: center;
+        }
+
+        .glitch-chars {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 3rem;
+            color: #fff;
+            text-shadow: 2px 0 red, -2px 0 cyan;
+            animation: flicker 0.05s infinite;
+            display: block;
+            margin-top: 1rem;
+        }
+
+        /* --- PARTICLES & UTILS --- */
+
+        .particle {
+            position: absolute;
+            background: #fff;
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .trail-particle {
+            position: fixed;
+            background: cyan;
+            border-radius: 50%;
+            pointer-events: none;
+            width: 4px;
+            height: 4px;
+            box-shadow: 0 0 10px cyan;
+            animation: fade-trail 0.8s forwards;
+            z-index: 9000; 
+        }
+
+        /* --- ANIMATIONS --- */
+
+        @keyframes nebula-pulse {
+            0% { opacity: 0.5; transform: scale(1); }
+            100% { opacity: 0.8; transform: scale(1.1); }
+        }
+
+        @keyframes hue-shift {
+            0% { filter: blur(30px) hue-rotate(0deg); }
+            100% { filter: blur(30px) hue-rotate(360deg); }
+        }
+
+        @keyframes light-pass {
+            0% { transform: translateX(-50%) rotate(0deg); opacity: 0; }
+            20% { opacity: 1; }
+            80% { opacity: 1; }
+            100% { transform: translateX(50%) rotate(5deg); opacity: 0; }
+        }
+
+        @keyframes fade-in {
+            to { opacity: 1; }
+        }
+
+        @keyframes star-float {
+            from { transform: translateY(0); }
+            to { transform: translateY(-100vh); }
+        }
+
+        @keyframes fade-trail {
+            0% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; transform: scale(0); }
+        }
+
+        @keyframes float-slow {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+
+        @keyframes flicker {
+            0% { opacity: 0.02; }
+            5% { opacity: 0.05; }
+            10% { opacity: 0.02; }
+            15% { opacity: 0.06; }
+            20% { opacity: 0.02; }
+            50% { opacity: 0.02; }
+            55% { opacity: 0.05; }
+            60% { opacity: 0.02; }
+            100% { opacity: 0.02; }
+        }
+        
+        @keyframes text-float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        @keyframes pulse-text {
+            0% { opacity: 0.7; transform: scale(0.98); }
+            100% { opacity: 1; transform: scale(1.02); }
+        }
+        
+        @keyframes violent-shake {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            10% { transform: translate(-1px, -2px) rotate(-1deg); }
+            20% { transform: translate(-3px, 0px) rotate(1deg); }
+            30% { transform: translate(3px, 2px) rotate(0deg); }
+            40% { transform: translate(1px, -1px) rotate(1deg); }
+            50% { transform: translate(-1px, 2px) rotate(-1deg); }
+            60% { transform: translate(-3px, 1px) rotate(0deg); }
+            70% { transform: translate(3px, 1px) rotate(-1deg); }
+            80% { transform: translate(-1px, -1px) rotate(1deg); }
+            90% { transform: translate(1px, 2px) rotate(0deg); }
+            100% { transform: translate(1px, -2px) rotate(-1deg); }
+        }
+
+        @keyframes chaotic-glitch {
+            0% { transform: skewX(10deg) translateX(5px); opacity: 0.8; }
+            25% { transform: skewX(-10deg) translateX(-5px); opacity: 1; }
+            50% { transform: skewY(5deg) translateY(5px); opacity: 0.8; }
+            75% { transform: skewY(-5deg) translateY(-5px); opacity: 1; }
+            100% { transform: skewX(10deg) translateX(5px); opacity: 0.8; }
+        }
+
+        @keyframes rain-fall {
+            from { transform: translateY(-50px); }
+            to { transform: translateY(110vh); }
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 900px) {
+            .showcase-content {
+                flex-direction: column;
+                text-align: center;
+                gap: 3rem;
+                padding-bottom: 5rem;
+            }
+            .text-wrapper {
+                text-align: center;
+            }
+            .showcase-desc {
+                border-left: none;
+                border-top: 1px solid rgba(0, 255, 255, 0.5);
+                padding: 20px 10px;
+                background: linear-gradient(180deg, rgba(0,255,255,0.03), transparent);
+            }
+            .main-text, .reflection {
+                font-size: 18vw;
+            }
+            .showcase-title {
+                font-size: 1.8rem;
+                letter-spacing: 4px;
+            }
+            .about-header {
+                font-size: 2.5rem;
+            }
+            .terminus-title, .found-you-text {
+                font-size: 3rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- SVG Filters -->
+    <svg style="position: absolute; width: 0; height: 0; overflow: hidden;">
+        <defs>
+            <filter id="lensDistort">
+                <feTurbulence type="fractalNoise" baseFrequency="0.01 0.005" numOctaves="2" result="warp" />
+                <feDisplacementMap xChannelSelector="R" yChannelSelector="G" scale="30" in="SourceGraphic" in2="warp" />
+            </filter>
+            <!-- Heavier Distortion for Release Section -->
+            <filter id="heavyDistort">
+                <feTurbulence type="turbulence" baseFrequency="0.05" numOctaves="2" result="noise" />
+                <feDisplacementMap in="SourceGraphic" in2="noise" scale="15" />
+            </filter>
+            <!-- Liquid Distortion for Terminus Section -->
+             <filter id="liquidDistort">
+                <feTurbulence type="turbulence" baseFrequency="0.02 0.05" numOctaves="3" seed="5" result="liquid" />
+                <feColorMatrix type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 15 -7" in="liquid" result="goo" />
+                <feDisplacementMap in="SourceGraphic" in2="goo" scale="20" />
+            </filter>
+            <!-- Extreme Distortion for Found You Section -->
+            <filter id="extremeDistort">
+                <feTurbulence type="fractalNoise" baseFrequency="0.1 0.01" numOctaves="5" result="noise" seed="13" />
+                <feColorMatrix type="saturate" values="0" in="noise" result="desaturatedNoise"/>
+                <feDisplacementMap in="SourceGraphic" in2="desaturatedNoise" scale="50" xChannelSelector="R" yChannelSelector="G" />
+                <feGaussianBlur stdDeviation="1" />
+            </filter>
+        </defs>
+    </svg>
+
+    <!-- Custom Cursor -->
+    <div class="custom-cursor"></div>
+
+    <!-- Fixed Background Layers -->
+    <div class="background-layer noise"></div>
+    <div class="crt-flicker"></div>
+    <div class="background-layer scanlines"></div>
+    <div class="background-layer vignette"></div>
+    <div class="background-layer nebula"></div>
+    <div class="lens-flare"></div>
+    <div id="stars"></div>
+
+    <!-- Scrollable Container -->
+    <div class="scroll-container">
+        
+        <!-- Section 1: Landing -->
+        <section class="section">
+            <div class="title-container">
+                <h1 class="main-text">VOIDIS</h1>
+                <div class="reflection">VOIDIS</div>
+                
+                <div class="btn-container">
+                    <a href="https://opusancreator.itch.io/voidis" target="_blank" class="itch-btn">DOWNLOAD ITCH.IO</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2: Showcase -->
+        <section class="section">
+            <div class="showcase-content">
+                <div class="image-wrapper">
+                    <div class="corner-deco tl"></div>
+                    <div class="corner-deco tr"></div>
+                    <div class="corner-deco bl"></div>
+                    <div class="corner-deco br"></div>
+                    
+                    <img src="pictureshowcase.png" alt="Game Screenshot" class="projector-img" onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAwIiBoZWlnaHQ9IjM1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMDUwNTA1Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZpbGw9IiMzMzMiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkltYWdlOiBwaWN0dXJlc2hvd2Nhc2UucG5nPC90ZXh0Pjwvc3ZnPg==';">
+                </div>
+                <div class="text-wrapper">
+                    <h2 class="showcase-title">THE PROJECTOR</h2>
+                    <p class="showcase-desc">
+                        <span class="highlight">VOIDIS</span> IS A PSYCHOLOGICAL HORROR EXPERIENCE DESIGNED TO DECONSTRUCT THE HUMAN PSYCHE.<br><br>
+                        IT IS NOT JUST A GAME.<br>
+                        THE VOIDIS IS A <span class="highlight">PROJECTOR</span>.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 3: ABOUT -->
+        <section class="section">
+            <div class="about-content">
+                <h2 class="about-header">ABOUT</h2>
+                <div class="about-desc">
+                    By <span class="highlight">OpusAnCreator</span>, a psychology horror game.<br>
+                    The game is inspired by these anomalies:
+                </div>
+                
+                <div class="inspiration-grid">
+                    <div class="inspiration-tag">Abstracted Dreams</div>
+                    <div class="inspiration-tag">Digital Circus</div>
+                    <div class="inspiration-tag">The Void</div>
+                    <div class="inspiration-tag">Greek Times</div>
+                    <div class="inspiration-tag">World War 2</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 4: RELEASE (Improved Realistic Eye) -->
+        <section class="section release-section">
+            <div class="release-content">
+                <div class="eye-container">
+                    <div class="eyeball">
+                        <div class="iris">
+                            <div class="pupil"></div>
+                        </div>
+                        <div class="eye-glint"></div>
+                    </div>
+                </div>
+                <p class="creepy-text">
+                    THE RELEASE COMING SOON.<br>
+                    I WILL STARE AT YOU WHOLE MOMENT.
+                </p>
+            </div>
+        </section>
+
+        <!-- Section 5: TERMINUS (Updated Text) -->
+        <section class="section terminus-section">
+            <div class="terminus-content">
+                <h2 class="terminus-title">ALONG</h2>
+                <div class="terminus-text">
+                    ALONG
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 6: RAIN (New) -->
+        <section class="section rain-section">
+            <div class="rain-content">
+                <h2 class="rain-title">WEEPING</h2>
+                <p style="color: #aaa; letter-spacing: 2px; margin-top: 1rem;">
+                    IT RAINS IN THE VOID.
+                </p>
+            </div>
+        </section>
+
+        <!-- Section 7: FOUND YOU -->
+        <section class="section found-you-section">
+            <div class="found-you-content">
+                <div class="found-you-text">
+                    I WILL FOUND YOU<br>
+                    <span class="glitch-chars">=%)=^%=</span>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <script>
+        // --- CENTRALIZED EVENT LOOP FOR PERFORMANCE ---
+
+        // State management
+        const state = {
+            mouseX: 0,
+            mouseY: 0,
+            lastTrailTime: 0
+        };
+
+        const cursor = document.querySelector('.custom-cursor');
+        const eye = document.querySelector('.eyeball');
+        const iris = document.querySelector('.iris');
+        const titleContainer = document.querySelector('.title-container');
+        const mainText = document.querySelector('.main-text');
+        const reflection = document.querySelector('.reflection');
+
+        // Mouse Event Listener (Data Capture Only)
+        document.addEventListener('mousemove', (e) => {
+            state.mouseX = e.clientX;
+            state.mouseY = e.clientY;
+        });
+
+        // Main Animation Loop (Visual Updates)
+        function animate() {
+            // 1. Update Cursor
+            cursor.style.left = state.mouseX + 'px';
+            cursor.style.top = state.mouseY + 'px';
+
+            // 2. Eye Tracking
+            if (eye && iris) {
+                const eyeRect = eye.getBoundingClientRect();
+                
+                // Only animate if eye is roughly on screen to save resources
+                if (eyeRect.top < window.innerHeight && eyeRect.bottom > 0) {
+                    const eyeCenterX = eyeRect.left + eyeRect.width / 2;
+                    const eyeCenterY = eyeRect.top + eyeRect.height / 2;
+                    
+                    const angle = Math.atan2(state.mouseY - eyeCenterY, state.mouseX - eyeCenterX);
+                    const maxDistance = eyeRect.width / 4; 
+                    const distance = Math.min(
+                        Math.hypot(state.mouseX - eyeCenterX, state.mouseY - eyeCenterY), 
+                        maxDistance
+                    );
+                    
+                    const moveX = Math.cos(angle) * distance;
+                    const moveY = Math.sin(angle) * distance;
+                    
+                    iris.style.transform = `translate(calc(-50% + ${moveX}px), calc(-50% + ${moveY}px))`;
+                }
+            }
+
+            // 3. Parallax Effect
+            if (titleContainer && mainText && reflection) {
+                const titleRect = titleContainer.getBoundingClientRect();
+                if(titleRect.bottom > 0 && titleRect.top < window.innerHeight) {
+                    const moveX = (state.mouseX - window.innerWidth / 2) * 0.01;
+                    const moveY = (state.mouseY - window.innerHeight / 2) * 0.01;
+                    
+                    mainText.style.transform = `translate(${moveX}px, ${moveY}px)`;
+                    reflection.style.transform = `scaleY(-1) translate(${moveX}px, ${-moveY - 10}px)`;
+                }
+            }
+
+            // 4. Trail Logic
+            const now = Date.now();
+            if (now - state.lastTrailTime > 20) { 
+                createTrail(state.mouseX, state.mouseY);
+                state.lastTrailTime = now;
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        // Helper: Create Trail
+        function createTrail(x, y) {
+            const trail = document.createElement('div');
+            trail.classList.add('trail-particle');
+            trail.style.left = `${x}px`;
+            trail.style.top = `${y}px`;
+            document.body.appendChild(trail);
+
+            // Cleanup after animation
+            setTimeout(() => {
+                trail.remove();
+            }, 800);
+        }
+
+        // Helper: Create Rain
+        function createRain() {
+            const rainSection = document.querySelector('.rain-section');
+            if(!rainSection) return;
+            
+            // Create 50 drops
+            for(let i=0; i<50; i++) {
+                const drop = document.createElement('div');
+                drop.classList.add('raindrop');
+                drop.style.left = Math.random() * 100 + 'vw';
+                drop.style.animationDuration = Math.random() * 1 + 0.5 + 's';
+                drop.style.animationDelay = Math.random() * 2 + 's';
+                drop.style.opacity = Math.random() * 0.5 + 0.2;
+                rainSection.appendChild(drop);
+            }
+        }
+
+        // Start Loop
+        requestAnimationFrame(animate);
+        createRain(); // Init Rain
+
+        // Hover listeners for custom cursor scaling
+        const interactiveElements = document.querySelectorAll('a, button, .inspiration-tag, .image-wrapper');
+        interactiveElements.forEach(el => {
+            el.addEventListener('mouseenter', () => cursor.classList.add('hovered'));
+            el.addEventListener('mouseleave', () => cursor.classList.remove('hovered'));
+        });
+
+        // Stars Generation
+        const starsContainer = document.getElementById('stars');
+        const starCount = 100;
+
+        for (let i = 0; i < starCount; i++) {
+            const star = document.createElement('div');
+            star.classList.add('particle');
+            
+            const x = Math.random() * 100;
+            const y = Math.random() * 100;
+            const size = Math.random() * 2;
+            const duration = 10 + Math.random() * 40;
+            const delay = Math.random() * 20;
+
+            star.style.left = `${x}vw`;
+            star.style.top = `${y}vh`;
+            star.style.width = `${size}px`;
+            star.style.height = `${size}px`;
+            star.style.opacity = Math.random();
+            star.style.animation = `star-float ${duration}s linear infinite`;
+            star.style.animationDelay = `-${delay}s`;
+
+            starsContainer.appendChild(star);
+        }
+
+        // Intersection Observer for Reveal Effect
+        const scrollContainer = document.querySelector('.scroll-container');
+        
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, { 
+            threshold: 0.3,
+            root: scrollContainer
+        });
+
+        document.querySelectorAll('.showcase-content, .about-content, .release-content, .terminus-content, .found-you-content, .rain-content').forEach((el) => {
+            observer.observe(el);
+        });
+    </script>
+</body>
+</html>
